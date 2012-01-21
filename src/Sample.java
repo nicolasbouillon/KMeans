@@ -9,8 +9,16 @@ import java.util.StringTokenizer;
 
 public class Sample {
 
+	private static final int PANEL_WIDTH = 800;
+	private static final int PANEL_HEIGHT = 700;
+
 	private LinkedList<Individual> population = new LinkedList<Individual>();
 	private LinkedList<Cluster> clusters = new LinkedList<Cluster>();
+	private Affichage affichage;
+
+	public void setAffichage(Affichage affichage) {
+		this.affichage = affichage;
+	}
 
 	public LinkedList<Individual> getPopulation() {
 		return this.population;
@@ -31,7 +39,7 @@ public class Sample {
 			// lecture ligne par ligne
 			while ((ligne = br.readLine()) != null) {
 				LinkedList<Float> dataList = new LinkedList<Float>();
-				// lecture de chaque variable pour une ligne donnée
+				// lecture de chaque variable pour une ligne donnï¿½e
 				StringTokenizer st = new StringTokenizer(ligne, "\t");
 				while (st.hasMoreTokens()) {
 					dataList.add(new Float(st.nextToken()));
@@ -46,18 +54,45 @@ public class Sample {
 		}
 	}
 
-	private void launchClustering(int nbClusters, String similarityFunctionToUse) {
-		for (int i = 0; i < nbClusters - 1; i++) {
-			// Couleur de chaque cluster déterminée aléatoirement
-			Color c = new Color((int) (Math.random() * 0xFFFFFF));
-			// Initialisation du cluster aléatoire (choix d'un individu initial)
-			int randomIndivIndex = (int) Math.random() * this.population.size();
+	public void launchClustering(int nbClusters, int nbIterations,
+			String similarityFunctionToUse) throws InterruptedException {
+
+		// Initialisation
+		for (int i = 0; i < nbClusters; i++) {
+			// Couleur des clusters (6 diffÃ©rentes prÃ©vues)
+			Color c = this.affichage.getNewColor(this.getClusters().size());
+			// Initialisation du cluster alÃ©atoire (choix d'un individu initial)
+			int randomIndivIndex = (int) (Math.random() * this.population
+					.size());
 			Individual initialIndiv = new Individual(
 					this.population.get(randomIndivIndex));
 
 			this.clusters.add(new Cluster(c, initialIndiv));
 		}
-		
+
+		// boucle d'affectation de la populations aux diffÃ©rents clusters
+		for (int i = 0; i < nbIterations; i++) {
+			for (Cluster cluster : this.clusters) {
+				cluster.clear();
+			}
+			this.reallocatePopulation(similarityFunctionToUse);
+
+			// mise Ã  jour de l'affichage dans le cas de 2 variables
+			if (this.getPopulation().get(0).getDataList().size() == 2) {
+				this.affichage.repaint();
+				Thread.sleep(1000);
+			}
+
+			for (Cluster cluster : this.clusters) {
+				cluster.computeCenter();
+			}
+
+		}
+
+	}
+
+	private void reallocatePopulation(String similarityFunctionToUse) {
+
 		Method meth = this.getSimilarityMethod(similarityFunctionToUse);
 		try {
 			for (Individual indiv : this.population) {
@@ -67,22 +102,23 @@ public class Sample {
 					Object args[] = new Object[1];
 					args[0] = indiv;
 					Object similarity = meth.invoke(cluster.getCenter(), args);
-					Float similarityFloat = (Float)similarity ;
-					
-					
-					if (similarityFloat > maxSimilarity){
+					Float similarityFloat = (Float) similarity;
+
+					if (similarityFloat > maxSimilarity) {
 						clusterToAddTo = cluster;
 						maxSimilarity = similarityFloat;
 					}
 				}
 				clusterToAddTo.add(indiv);
-			}			
-			
+			}
+
 		} catch (Throwable e) {
 			System.err.println(e);
 		}
+
 	}
 
+	// Introspection to call the wanted similarity function
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	private Method getSimilarityMethod(String s) {
 		try {
@@ -94,23 +130,14 @@ public class Sample {
 			return similarityFunction;
 
 		} catch (NoSuchMethodException ex) {
-			System.out.println("Method either doesn't exist "
-					+ "or is not public: " + ex.toString());
+			System.out.println("Method doesn't exist " + ex.toString());
 		}
 		return null;
 	}
 
-	private void openDisplayPanel() {
-		WindowUtilities.openInJFrame(new Affichage(this), 520, 450);
-
+	public void openDisplayPanel() {
+		Affichage affichage = new Affichage(this);
+		WindowUtilities.openInJFrame(affichage, PANEL_WIDTH, PANEL_HEIGHT);
 	}
 
-	public static void main(String[] args) {
-		Sample sample = new Sample("exemple2.txt");
-
-		sample.launchClustering(2, "Euclidian");
-		if (sample.population.get(0).getDataList().size() == 2) {
-			sample.openDisplayPanel();
-		}
-	}
 }
