@@ -45,8 +45,10 @@ public class Affichage extends JPanel {
 		clear(g);
 		Graphics2D g2d = (Graphics2D) g;
 
-		g2d.drawString("x : individus initiaux", 1, 15);
-		g2d.drawString("+ : centre de gravité des groupes", 1, 30);
+		g2d.drawString("x : individus initiaux", 5, 15);
+		g2d.drawString("+ : centre de gravité des groupes", 5, 30);
+		g2d.drawString("Iteration " + this.sample.getIteration(), 5, 45);
+		g2d.drawString("Distance used :  " + this.sample.getDistance(), 5, 60);
 
 		for (Cluster cluster : this.sample.getClusters()) {
 

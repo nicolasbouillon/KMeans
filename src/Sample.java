@@ -14,7 +14,10 @@ public class Sample {
 
 	private LinkedList<Individual> population = new LinkedList<Individual>();
 	private LinkedList<Cluster> clusters = new LinkedList<Cluster>();
+	private LinkedList<Cluster> initialisedClusters = new LinkedList<Cluster>();
 	private Affichage affichage;
+	private int iteration;
+	private String distance;
 
 	public void setAffichage(Affichage affichage) {
 		this.affichage = affichage;
@@ -26,6 +29,18 @@ public class Sample {
 
 	public LinkedList<Cluster> getClusters() {
 		return this.clusters;
+	}
+
+	public int getIteration() {
+		return iteration;
+	}
+
+	public String getDistance() {
+		return distance;
+	}
+
+	public LinkedList<Cluster> getInitialisedClusters() {
+		return initialisedClusters;
 	}
 
 	public Sample(String file) {
@@ -54,22 +69,38 @@ public class Sample {
 		}
 	}
 
+	public Sample(String file, LinkedList<Cluster> initialisedClusters) {
+		this(file);
+		this.clusters = new LinkedList<Cluster>(initialisedClusters);
+	}
+
 	public void launchClustering(int nbClusters, int nbIterations,
 			String similarityFunctionToUse) throws InterruptedException {
 
 		// Initialisation
-		for (int i = 0; i < nbClusters; i++) {
-			// Couleur des clusters (6 différentes prévues)
-			Color c = this.affichage.getNewColor(this.getClusters().size());
-			// Initialisation du cluster aléatoire (choix d'un individu initial)
-			int randomIndivIndex = (int) (Math.random() * this.population
-					.size());
-			Individual initialIndiv = new Individual(
-					this.population.get(randomIndivIndex));
+		if (this.clusters.isEmpty()) {
+			for (int i = 0; i < nbClusters; i++) {
+				// Couleur des clusters (6 différentes prévues)
+				Color c = null;
+				if (this.affichage != null) {
+					c = this.affichage.getNewColor(this.getClusters()
+							.size());
+				}
+				// Initialisation du cluster aléatoire (choix d'un individu
+				// initial)
+				int randomIndivIndex = (int) (Math.random() * this.population
+						.size());
+				Individual initialIndiv = new Individual(
+						this.population.get(randomIndivIndex));
 
-			this.clusters.add(new Cluster(c, initialIndiv));
+				this.clusters.add(new Cluster(c, initialIndiv));
+				this.initialisedClusters.add(new Cluster(c, initialIndiv));
+			}
+
 		}
 
+		this.iteration = 1;
+		this.distance = similarityFunctionToUse;
 		// boucle d'affectation de la populations aux différents clusters
 		for (int i = 0; i < nbIterations; i++) {
 			for (Cluster cluster : this.clusters) {
@@ -86,13 +117,12 @@ public class Sample {
 			for (Cluster cluster : this.clusters) {
 				cluster.computeCenter();
 			}
-
+			this.iteration = this.iteration + 1;
 		}
 
 	}
 
 	private void reallocatePopulation(String similarityFunctionToUse) {
-
 		Method meth = this.getSimilarityMethod(similarityFunctionToUse);
 		try {
 			for (Individual indiv : this.population) {
@@ -110,8 +140,8 @@ public class Sample {
 					}
 				}
 				clusterToAddTo.add(indiv);
+				
 			}
-
 		} catch (Throwable e) {
 			System.err.println(e);
 		}
